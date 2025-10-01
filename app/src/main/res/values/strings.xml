@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Simple Expense Tracker</string>
+    <string name="title_activity_daily_expenses_overview">DailyExpensesOverview</string>
+    <string name="title_activity_monthly_expenses">MonthlyExpenses</string>
+</resources>
