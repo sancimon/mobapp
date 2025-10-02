@@ -1,0 +1,110 @@
+SIMPLE EXPENSE TRACKER APP - OVERVIEW
+=====================================
+
+WHAT IT IS:
+-----------
+A mobile Android app for tracking daily expenses with categories, budget limits, and monthly reports. Think of it like a digital expense diary that helps you monitor your spending.
+
+
+KEY FEATURES:
+-------------
+1. Add Expenses - Record expenses with amounts, categories, and dates
+2. Daily View - See all expenses for a specific day with daily limit tracking
+3. Monthly View - View and manage expenses by month
+4. Monthly Reports - Statistics and summaries of spending patterns
+5. Daily Budget Cap - Set a daily spending limit to stay on budget
+6. Custom Categories - Create/edit expense categories (food, transport, entertainment, etc.) with custom colors and icons
+7. About/Donation Page - App information
+
+
+TECHNOLOGY STACK:
+-----------------
+
+Language & Platform:
+- Kotlin - Modern Android programming language
+- Android SDK (Min API 28 / Android 9, Target API 35)
+- Jetpack Compose - Modern UI toolkit (declarative UI like React)
+
+Architecture Components:
+- SQLite Database - Local data storage via ContentProvider pattern
+- DataStore - For storing user preferences (like daily limit)
+- Navigation Component - Screen navigation management
+- Repository Pattern - Clean separation between data and UI layers
+
+
+HOW IT WORKS:
+-------------
+
+1. DATA STORAGE (Database Layer)
+   AppDatabase.kt → Creates SQLite database
+   ├── CategoryRepository.kt → Manages expense categories
+   └── ExpenseRepository.kt → Manages expense records
+
+   - Uses Android's ContentProvider pattern (AppProvider.kt) for structured data access
+   - Two main tables: Categories and Expenses
+
+2. BUSINESS LOGIC (Manager Layer)
+   ExpenseManager.kt → Handles expense operations
+   ├── Add/edit/delete expenses
+   ├── Calculate daily totals
+   └── Track budget status
+
+   ExpenseCategoryManager.kt → Handles category operations
+   └── CRUD operations for categories
+
+3. UI (Compose Layer)
+   Built with Jetpack Compose - modern declarative UI:
+   - MainActivity.kt - App entry point with navigation drawer
+
+   Pages (screens):
+   - AddExpensePage - Form to add new expenses
+   - DailyExpensesPage - List of today's expenses
+   - MonthlyExpensesPage - Calendar view of monthly expenses
+   - MonthlyReportPage - Charts/statistics
+   - CategoriesSetupPage - Manage categories
+   - DailyExpenseLimitPage - Set budget cap
+
+4. DATA FLOW:
+   User Input → Manager → Repository → Database → Repository → Manager → UI Update
+
+
+GITHUB ACTIONS WORKFLOW:
+------------------------
+The .github/workflows/build-apk.yml file automates APK building:
+1. Triggers on push/PR to master branch
+2. Sets up Java 17 environment
+3. Runs ./gradlew assembleDebug to build the APK
+4. Uploads the APK as a downloadable artifact
+
+
+IN SIMPLE TERMS:
+----------------
+This is a personal finance tracker app where you:
+1. RECORD what you spend (coffee $5, lunch $12, etc.)
+2. CATEGORIZE expenses (food, transport, entertainment)
+3. MONITOR if you're staying under your daily budget
+4. REVIEW monthly spending patterns
+
+The app stores everything locally on your phone (no internet required), uses modern Android development practices (Jetpack Compose), and follows clean architecture principles with separate layers for data, business logic, and UI.
+
+
+PROJECT STRUCTURE:
+------------------
+app/src/main/java/com/mvpbrosproduction/simpleexpensetracker/
+├── MainActivity.kt                  # App entry point
+├── AppDatabase.kt                   # Database setup
+├── AppProvider.kt                   # ContentProvider for data access
+├── managers/                        # Business logic
+│   ├── ExpenseManager.kt
+│   └── ExpenseCategoryManager.kt
+├── repositories/                    # Data access layer
+│   ├── ExpenseRepository.kt
+│   └── CategoryRepository.kt
+├── composables/                     # UI components
+│   ├── pages/                       # Screen pages
+│   ├── dialogs/                     # Dialog windows
+│   ├── lists/                       # List components
+│   └── inputs/                      # Input components
+├── data_models/                     # Data structures
+├── constants/                       # App constants
+└── ui/theme/                        # Theming and colors
