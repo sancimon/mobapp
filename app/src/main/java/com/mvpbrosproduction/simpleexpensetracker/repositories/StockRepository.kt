@@ -41,12 +41,12 @@ class StockRepository {
             // Using SPY (S&P 500 ETF) as proxy for S&P 500 index
             val response = apiService.getStockQuote(symbol = "SPY", apiKey = API_KEY)
 
-            val quote = response.`Global Quote`
-            if (quote != null && quote.`05. price` != null) {
-                val price = quote.`05. price`?.toDoubleOrNull() ?: 0.0
-                val change = quote.`09. change`?.toDoubleOrNull() ?: 0.0
-                val changePercent = quote.`10. change percent`?.replace("%", "")?.toDoubleOrNull() ?: 0.0
-                val lastUpdated = quote.`07. latest trading day` ?: "N/A"
+            val quote = response.globalQuote
+            if (quote != null && quote.price != null) {
+                val price = quote.price?.toDoubleOrNull() ?: 0.0
+                val change = quote.change?.toDoubleOrNull() ?: 0.0
+                val changePercent = quote.changePercent?.replace("%", "")?.toDoubleOrNull() ?: 0.0
+                val lastUpdated = quote.latestTradingDay ?: "N/A"
 
                 val stockPrice = StockPrice(
                     symbol = "SPY (S&P 500)",

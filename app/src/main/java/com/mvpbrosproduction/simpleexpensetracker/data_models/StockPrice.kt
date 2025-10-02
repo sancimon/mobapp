@@ -1,5 +1,7 @@
 package com.mvpbrosproduction.simpleexpensetracker.data_models
 
+import com.google.gson.annotations.SerializedName
+
 data class StockPrice(
     val symbol: String,
     val price: Double,
@@ -10,13 +12,23 @@ data class StockPrice(
 
 // Alpha Vantage API Response Models
 data class AlphaVantageResponse(
-    val `Global Quote`: GlobalQuote?
+    @SerializedName("Global Quote")
+    val globalQuote: GlobalQuote?
 )
 
 data class GlobalQuote(
-    val `01. symbol`: String?,
-    val `05. price`: String?,
-    val `09. change`: String?,
-    val `10. change percent`: String?,
-    val `07. latest trading day`: String?
+    @SerializedName("01. symbol")
+    val symbol: String?,
+
+    @SerializedName("05. price")
+    val price: String?,
+
+    @SerializedName("09. change")
+    val change: String?,
+
+    @SerializedName("10. change percent")
+    val changePercent: String?,
+
+    @SerializedName("07. latest trading day")
+    val latestTradingDay: String?
 )
