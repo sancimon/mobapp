@@ -7,15 +7,15 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class StockRepository {
     companion object {
-        private const val BASE_URL = "https://www.alphavantage.co/"
+        private const val BASE_URL = "https://api.coingecko.com/api/v3/"
         private const val TAG = "StockRepository"
-
-        // Free API key from Alpha Vantage - get your own at https://www.alphavantage.co/support/#api-key
-        private const val API_KEY = "demo" // Replace with actual API key
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -38,18 +38,27 @@ class StockRepository {
 
     suspend fun getSP500Price(): Result<StockPrice> {
         return try {
-            // Using SPY (S&P 500 ETF) as proxy for S&P 500 index
-            val response = apiService.getStockQuote(symbol = "SPY", apiKey = API_KEY)
+            // Using CoinGecko free API - Bitcoin price (no auth required)
+            val response = apiService.getCryptoPrice(
+                ids = "bitcoin",
+                vsCurrencies = "usd",
+                include24hrChange = true,
+                includeLastUpdatedAt = true
+            )
 
-            val quote = response.globalQuote
-            if (quote != null && quote.price != null) {
-                val price = quote.price?.toDoubleOrNull() ?: 0.0
-                val change = quote.change?.toDoubleOrNull() ?: 0.0
-                val changePercent = quote.changePercent?.replace("%", "")?.toDoubleOrNull() ?: 0.0
-                val lastUpdated = quote.latestTradingDay ?: "N/A"
+            val bitcoin = response.bitcoin
+            if (bitcoin != null && bitcoin.usd != null) {
+                val price = bitcoin.usd ?: 0.0
+                val changePercent = bitcoin.usd24hChange ?: 0.0
+                val change = price * (changePercent / 100) // Calculate absolute change
+
+                val lastUpdated = bitcoin.lastUpdatedAt?.let { timestamp ->
+                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+                    sdf.format(Date(timestamp * 1000))
+                } ?: "N/A"
 
                 val stockPrice = StockPrice(
-                    symbol = "SPY (S&P 500)",
+                    symbol = "Bitcoin (BTC)",
                     price = price,
                     change = change,
                     changePercent = changePercent,
@@ -61,7 +70,7 @@ class StockRepository {
                 Result.failure(Exception("Invalid API response"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching stock price", e)
+            Log.e(TAG, "Error fetching crypto price", e)
             Result.failure(e)
         }
     }

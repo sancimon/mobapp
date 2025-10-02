@@ -188,12 +188,12 @@ fun MonthlyReportPage(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 CircularProgressIndicator(modifier = Modifier.width(20.dp))
-                                Text(text = "Loading S&P 500...", fontSize = 14.sp)
+                                Text(text = "Loading Bitcoin price...", fontSize = 14.sp)
                             }
                         }
                         errorMessage != null -> {
                             Text(
-                                text = "S&P 500: $errorMessage",
+                                text = "Bitcoin: $errorMessage",
                                 color = Color.Red,
                                 fontSize = 12.sp,
                                 textAlign = TextAlign.Center
