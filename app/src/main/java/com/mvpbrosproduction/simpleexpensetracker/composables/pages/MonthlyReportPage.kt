@@ -13,9 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,10 +34,13 @@ import androidx.compose.ui.unit.sp
 import com.mvpbrosproduction.simpleexpensetracker.composables.ui.ExpenseProgressBar
 import com.mvpbrosproduction.simpleexpensetracker.data_models.Expense
 import com.mvpbrosproduction.simpleexpensetracker.data_models.ExpenseCategory
+import com.mvpbrosproduction.simpleexpensetracker.data_models.StockPrice
 import com.mvpbrosproduction.simpleexpensetracker.managers.DateManager
 import com.mvpbrosproduction.simpleexpensetracker.managers.ExpenseManager
 import com.mvpbrosproduction.simpleexpensetracker.models.SimpleDate
+import com.mvpbrosproduction.simpleexpensetracker.repositories.StockRepository
 import com.mvpbrosproduction.simpleexpensetracker.ui.theme.SimpleExpenseTrackerTheme
+import kotlinx.coroutines.launch
 import java.time.YearMonth
 
 private const val TAG = "YearlyExpensesPage"
@@ -56,6 +66,29 @@ fun MonthlyReportPage(
 
     val expensesByCategory: List<Pair<ExpenseCategory, Double>> =
         groupExpensesByCategoryAndSortByTotal(monthlyExpenses)
+
+    // S&P 500 stock price state
+    var stockPrice by remember { mutableStateOf<StockPrice?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val stockRepository = remember { StockRepository() }
+
+    // Fetch stock price when composable is first displayed
+    LaunchedEffect(Unit) {
+        isLoading = true
+        scope.launch {
+            val result = stockRepository.getSP500Price()
+            result.onSuccess { price ->
+                stockPrice = price
+                errorMessage = null
+            }.onFailure { error ->
+                errorMessage = error.message ?: "Failed to load stock price"
+                Log.e(TAG, "Error loading stock price", error)
+            }
+            isLoading = false
+        }
+    }
 
     SimpleExpenseTrackerTheme {
         // A surface container using the 'background' color from the theme
@@ -132,11 +165,83 @@ fun MonthlyReportPage(
                     }
                 }
             }
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.Bottom,
-                modifier = Modifier.padding(bottom = 32.dp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
             ) {
+                // S&P 500 Stock Price Display
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp, vertical = 16.dp)
+                        .background(Color(0xFFF5F5F5))
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        isLoading -> {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.width(20.dp))
+                                Text(text = "Loading S&P 500...", fontSize = 14.sp)
+                            }
+                        }
+                        errorMessage != null -> {
+                            Text(
+                                text = "S&P 500: $errorMessage",
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        stockPrice != null -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = stockPrice!!.symbol,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                                Text(
+                                    text = "$${String.format("%.2f", stockPrice!!.price)}",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 20.sp,
+                                    color = Color(0xFF1976D2)
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val changeColor = if (stockPrice!!.change >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                                    Text(
+                                        text = "${if (stockPrice!!.change >= 0) "+" else ""}${String.format("%.2f", stockPrice!!.change)}",
+                                        color = changeColor,
+                                        fontSize = 14.sp
+                                    )
+                                    Text(
+                                        text = "(${if (stockPrice!!.changePercent >= 0) "+" else ""}${String.format("%.2f", stockPrice!!.changePercent)}%)",
+                                        color = changeColor,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                Text(
+                                    text = "Last updated: ${stockPrice!!.lastUpdated}",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Back Button
                 Button(
                     onClick = {
                         onBackBtnClick()
