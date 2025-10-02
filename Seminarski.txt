@@ -1,0 +1,410 @@
+﻿SEMINARSKI RAD
+SIMPLE EXPENSE TRACKER - ANDROID APLIKACIJA
+
+
+SADRŽAJ
+1. UVOD
+2. TEHNIČKA PERSPEKTIVA
+2.1. Tehnologije i alati
+2.2. Arhitektura aplikacije
+2.3. Struktura baze podataka
+2.4. Tok podataka
+2.5. Korisničko interfejs (UI)
+2.6. CI/CD automatizacija
+2.7. API integracija - Bitcoin cena
+3. KORISNIČKI PRIRUČNIK
+3.1. Pokretanje aplikacije
+3.2. Dodavanje troškova
+3.3. Pregled dnevnih troškova
+3.4. Pregled mesečnih troškova
+3.5. Mesečni izveštaj
+3.6. Podešavanje dnevnog limita
+3.7. Upravljanje kategorijama
+4. ZAKLJUČAK
+
+
+1. UVOD
+
+Simple Expense Tracker je mobilna Android aplikacija namenjena praćenju ličnih troškova. Aplikacija omogućava korisnicima da evidentiraju svoje dnevne troškove, organizuju ih po kategorijama, prate budžet, i dobijaju detaljne mesečne izveštaje o svojim potrošačkim navikama.
+
+Osnovne karakteristike aplikacije uključuju:
+• Evidenciju troškova sa iznosom, kategorijom i datumom
+• Pregled dnevnih troškova sa praćenjem dnevnog limita
+• Mesečni pregled i upravljanje troškovima
+• Statistički izveštaji i sažeci obrazaca potrošnje
+• Podešavanje dnevnog budžetskog limita
+• Prilagođene kategorije sa custom bojama i ikonama
+• Prikaz trenutne Bitcoin cene u realnom vremenu
+• Potpuno offline rad - svi podaci se čuvaju lokalno na uređaju (osim Bitcoin cene koja zahteva internet)
+
+Aplikacija je razvijena korišćenjem modernih Android tehnologija i praksi, sa fokusom na korisničko iskustvo, performanse i održivost koda.
+
+
+2. TEHNIČKA PERSPEKTIVA
+
+2.1. Tehnologije i alati
+
+Programski jezik:
+• Kotlin - moderan, siguran i ekspresivan programski jezik za Android razvoj
+
+Platforma:
+• Android SDK (Minimalna API 28 / Android 9, Target API 35)
+• Jetpack Compose - moderna deklarativna UI biblioteka (slično React-u)
+
+Glavni framework-ovi i biblioteke:
+• Jetpack Compose UI (androidx.compose) - deklarativni UI toolkit
+• Navigation Component - upravljanje navigacijom između ekrana
+• SQLite Database - lokalno skladištenje podataka
+• DataStore Preferences - čuvanje korisničkih podešavanja
+• Material 3 Design - moderna dizajnerska komponente
+• Kotlin Coroutines - asinhrono programiranje
+• Retrofit 2.9.0 - REST API klijent za mrežne pozive
+• OkHttp 4.11.0 - HTTP klijent
+• Gson 2.10.1 - JSON parsiranje
+
+Build sistem:
+• Gradle sa Kotlin DSL
+• Version Code: 9, Version Name: 1.0.6
+
+
+2.2. Arhitektura aplikacije
+
+Aplikacija prati čistu arhitekturnu praksu sa odvojenim slojevima za podatke, poslovnu logiku i korisnički interfejs:
+
+1. DATA LAYER (Sloj podataka)
+
+• AppDatabase.kt - Inicijalizacija i kreiranje SQLite baze podataka
+• AppProvider.kt - ContentProvider za strukturisan pristup podacima
+• ExpenseContract.kt - Definiše strukturu tabele troškova
+• CategoryContract.kt - Definiše strukturu tabele kategorija
+
+2. REPOSITORY LAYER (Repozitorijum)
+
+• ExpenseRepository.kt - CRUD operacije za troškove (Create, Read, Update, Delete)
+• CategoryRepository.kt - CRUD operacije za kategorije
+• StockRepository.kt - API pozivi za dobijanje Bitcoin cene
+
+Repository pattern obezbeđuje apstrakciju između izvora podataka i poslovne logike.
+
+3. MANAGER LAYER (Poslovna logika)
+
+• ExpenseManager.kt - Upravlja operacijama sa troškovima
+- Dodavanje, izmena i brisanje troškova
+- Izračunavanje dnevnih i mesečnih zbira
+- Praćenje budžetskog statusa (unutar/van limita)
+- Filtriranje troškova po datumu
+
+• ExpenseCategoryManager.kt - Upravlja kategorijama troškova
+- CRUD operacije za kategorije
+- Upravljanje omiljenim kategorijama
+
+• DateManager.kt - Upravljanje datumima i kalendar logika
+
+4. UI LAYER (Korisnički interfejs)
+
+• MainActivity.kt - Glavni ulaz u aplikaciju sa navigation drawer-om
+• composables/pages/ - Ekrani aplikacije (stranice)
+• composables/dialogs/ - Dijalozi (popup prozori)
+• composables/lists/ - Liste komponente
+• composables/inputs/ - Input komponente (forme, polja)
+• composables/ui/ - Reusable UI komponente
+
+
+2.3. Struktura baze podataka
+
+Aplikacija koristi SQLite bazu podataka sa dve glavne tabele:
+
+1. Tabela Categories (Kategorije)
+
+• ID (INTEGER, PRIMARY KEY, AUTO INCREMENT) - Jedinstveni identifikator
+• NAME (TEXT) - Naziv kategorije (npr. "Hrana", "Transport")
+• DESCRIPTION (TEXT) - Opis kategorije
+• IS_FAVORITE (BOOLEAN) - Da li je omiljna kategorija
+• IS_CUSTOM (BOOLEAN) - Da li je korisnička custom kategorija
+• TINT (FLOAT) - Boja kategorije
+
+2. Tabela Expenses (Troškovi)
+
+• ID (INTEGER, PRIMARY KEY) - Jedinstveni identifikator
+• EXPENSE_DAY (INTEGER) - Dan troška
+• EXPENSE_MONTH (INTEGER) - Mesec troška
+• EXPENSE_YEAR (INTEGER) - Godina troška
+• EXPENSE_AMOUNT (REAL) - Iznos troška
+• DESCRIPTION (TEXT, opciono) - Opis troška
+• CATEGORY_ID (INTEGER, FOREIGN KEY) - Referenca na kategoriju
+
+Prilikom prvog pokretanja, aplikacija automatski kreira podrazumevane kategorije definisane u DefaultExpenseCategories.kt.
+
+
+2.4. Tok podataka
+
+Aplikacija prati unidrektalni tok podataka (unidirectional data flow):
+
+1. Korisnik interaguje sa UI komponentom (npr. unosi trošak)
+2. UI poziva funkciju u Manager-u
+3. Manager procesira poslovnu logiku i poziva Repository
+4. Repository pristupa bazi podataka preko ContentProvider-a
+5. Podaci se čuvaju u SQLite bazi
+6. Odgovor se vraća kroz iste slojeve nazad do UI-ja
+7. UI se ažurira sa novim podacima
+
+Ovaj pristup omogućava:
+• Lakše testiranje svaki sloj pojedinačno
+• Bolju separaciju odgovornosti (separation of concerns)
+• Jednostavnije održavanje i proširivanje koda
+
+
+2.5. Korisnički interfejs (UI)
+
+Aplikacija koristi Jetpack Compose - moderan, deklarativan UI toolkit. Glavne karakteristike:
+
+• Material 3 Design System - savremeni dizajn
+• Responsive layout - prilagođavanje različitim veličinama ekrana
+• Navigation Drawer - bočni meni za navigaciju
+• Reusable komponente - višekratna upotreba UI elemenata
+
+Glavni ekrani aplikacije:
+
+• AddExpensePage - Forma za unos novog troška
+• DailyExpensesPage - Lista današnjih troškova
+• MonthlyExpensesPage - Prikaz mesečnih troškova
+• MonthlyReportPage - Statistike i grafikoni
+• CategoriesSetupPage - Upravljanje kategorijama
+• DailyExpenseLimitPage - Podešavanje dnevnog limita
+• DonationPage - Informacije o aplikaciji
+
+
+2.6. CI/CD automatizacija
+
+Projekat koristi GitHub Actions workflow za automatizaciju build procesa:
+
+Workflow fajl: .github/workflows/build-apk.yml
+
+1. Okidač: push ili pull request na master granu
+2. Setup: Instaliranje Java 17 okruženja
+3. Build: Izvršavanje ./gradlew assembleDebug komande
+4. Upload: APK fajl se postavlja kao artifact koji se može preuzeti
+
+Ovo omogućava automatsko pravljenje instalacionog APK fajla pri svakoj promeni koda.
+
+
+2.7. API integracija - Bitcoin cena
+
+Aplikacija uključuje integraciju sa CoinGecko API-jem za prikaz trenutne cene Bitcoin-a na ekranu mesečnog izveštaja.
+
+Tehnička implementacija:
+
+API servis: CoinGecko API (besplatan, bez autentifikacije)
+• Endpoint: https://api.coingecko.com/api/v3/simple/price
+• Format odgovora: JSON
+• Parametri: ids=bitcoin, vs_currencies=usd, include_24hr_change=true
+
+Korišćene biblioteke:
+• Retrofit 2.9.0 - REST API klijent
+• OkHttp 4.11.0 - HTTP klijent za mrežne zahteve
+• Gson 2.10.1 - Parsiranje JSON odgovora
+
+Struktura podataka:
+
+CoinGeckoResponse - Wrapper klasa za API odgovor
+• bitcoin: CryptoData - Bitcoin podaci
+
+CryptoData - Model sa Bitcoin informacijama
+• usd: Double - Cena u američkim dolarima
+• usd24hChange: Double - Procenat promene za poslednjih 24h
+• lastUpdatedAt: Long - Timestamp poslednjeg ažuriranja
+
+StockPrice - Model za prikaz cene
+• symbol: String - Naziv kriptovalute ("Bitcoin (BTC)")
+• price: Double - Trenutna cena u USD
+• change: Double - Apsolutna promena cene
+• changePercent: Double - Procentualna promena
+• lastUpdated: String - Formatirani datum poslednjeg ažuriranja
+
+StockRepository.kt - Repozitorijum za upravljanje API pozivima
+• getSP500Price(): Result<StockPrice> - Asinhrona funkcija koja:
+  1. Poziva CoinGecko API endpoint preko Retrofit-a
+  2. Parsira JSON odgovor pomoću Gson-a
+  3. Izračunava apsolutnu promenu cene iz procenta
+  4. Formatira timestamp u čitljiv datum (yyyy-MM-dd HH:mm)
+  5. Vraća Result objekat sa podacima ili greškom
+
+StockApiService.kt - Retrofit interface za API pozive
+• getCryptoPrice() - Definiše GET zahtev sa query parametrima
+
+Prikaz podataka na UI:
+
+Lokacija: MonthlyReportPage.kt - iznad dugmeta "BACK"
+
+Prikazane informacije:
+• Naziv: "Bitcoin (BTC)"
+• Trenutna cena u USD formatu (npr. $43,250.75)
+• Apsolutna promena cene (npr. +$1,245.30)
+• Procentualna promena (npr. +2.95%)
+• Vreme poslednjeg ažuriranja (format: yyyy-MM-dd HH:mm)
+
+Stanja prikaza:
+• Loading - Prikazuje se CircularProgressIndicator dok se učitava
+• Success - Prikazuje Bitcoin podatke sa color-coded bojama
+  - Zelena boja za pozitivnu promenu (rast cene)
+  - Crvena boja za negativnu promenu (pad cene)
+• Error - Prikazuje poruku o grešci ako API poziv ne uspe
+
+Mrežne dozvole (AndroidManifest.xml):
+• INTERNET - Dozvola za pristup internetu
+• ACCESS_NETWORK_STATE - Provera stanja mrežne konekcije
+
+Kako funkcioniše:
+
+1. Kada korisnik otvori Monthly Report stranicu, LaunchedEffect se aktivira
+2. StockRepository pravi HTTP GET zahtev ka CoinGecko API-ju
+3. API vraća JSON odgovor sa Bitcoin podacima
+4. Gson automatski parsira JSON u CoinGeckoResponse objekat
+5. Repository izvlači potrebne podatke i kreira StockPrice objekat
+6. UI se ažurira sa novim podacima ili prikazuje grešku
+7. Cena se osvežava svaki put kada korisnik ponovo poseti stranicu
+
+Ova funkcionalnost omogućava korisnicima da vide trenutnu Bitcoin cenu dok pregledaju svoje mesečne troškove, pružajući dodatnu vrednost i kontekst o stanju kripto tržišta. API je potpuno besplatan i ne zahteva registraciju ili API ključ, što čini integraciju jednostavnom i pouzdanom.
+
+
+3. KORISNIČKI PRIRUČNIK
+
+3.1. Pokretanje aplikacije
+
+1. Instalirajte APK fajl na vaš Android uređaj (minimum Android 9)
+2. Otvorite aplikaciju tapkanjem na ikonu "Simple Expense Tracker"
+3. Pri prvom pokretanju, aplikacija će automatski kreirati bazu podataka i podrazumevane kategorije
+4. Otvorite bočni meni tapkanjem na ikonu hamburger menija (☰) u gornjem levom uglu
+
+
+3.2. Dodavanje troškova
+
+Za unos novog troška:
+
+1. Otvorite ekran "Add Expense" iz menija (podrazumevano je početni ekran)
+2. Odaberite datum tapkanjem na dugme sa datumom (po defaultu je današnji dan)
+3. Unesite iznos troška u polje "Amount"
+4. Izaberite kategoriju iz padajućeg menija "Category"
+5. Tapnite dugme "CREATE"
+
+Napomena: Dugme "CREATE" će biti omogućeno samo kada unesete iznos i odaberete kategoriju.
+
+
+3.3. Pregled dnevnih troškova
+
+1. Otvorite "Daily Expenses" iz menija
+2. Videćete listu svih troškova za odabrani datum
+3. Za svaki trošak prikazuje se:
+- Naziv i ikona kategorije
+- Iznos troška
+- Datum
+4. Na vrhu ekrana vidite:
+- Ukupan iznos troškova za dan
+- Progress bar koji pokazuje procenat iskorišćenosti dnevnog limita
+- Status: unutar limita (zeleno) ili van limita (crveno)
+
+Upravljanje troškovima:
+• Tapnite na trošak da ga izmenite
+• Swipe levo ili desno da obrišete trošak
+• Koristite strelice napred/nazad za promenu datuma
+
+
+3.4. Pregled mesečnih troškova
+
+1. Otvorite "Monthly Expenses" iz menija
+2. Videćete kalendarski prikaz troškova za ceo mesec
+3. Za svaki dan prikazuje se:
+- Datum
+- Ukupan iznos troškova za taj dan
+- Vizuelni indikator (boja) statusa budžeta
+4. Tapnite na određeni dan za detaljan pregled troškova tog dana
+5. Koristite strelice za navigaciju između meseci
+
+
+3.5. Mesečni izveštaj
+
+1. Otvorite "Monthly Report" iz menija
+2. Izveštaj prikazuje:
+- Ukupan iznos troškova za mesec
+- Broj dana unutar/van budžeta
+- Raspoređenost troškova po kategorijama
+- Prosečan dnevni trošak
+- Grafički prikaz podataka
+- Trenutna Bitcoin cena (uživo sa interneta)
+
+Bitcoin cena (na dnu ekrana):
+• Na dnu ekrana, iznad dugmeta "BACK", prikazuje se trenutna Bitcoin cena
+• Informacije uključuju:
+  - Cena u američkim dolarima (USD)
+  - Promena cene za poslednjih 24 sata (iznos i procenat)
+  - Vreme poslednjeg ažuriranja
+• Pozitivna promena je prikazana zelenom bojom
+• Negativna promena je prikazana crvenom bojom
+• Napomena: Potrebna je internet konekcija za učitavanje Bitcoin cene
+
+3. Koristite ove podatke da analizirate svoje navike potrošnje i pratite Bitcoin tržište
+
+
+3.6. Podešavanje dnevnog limita
+
+Postavljanje dnevnog budžetskog limita:
+
+1. Otvorite "Set Daily Expense Cap" iz menija
+2. Unesite željeni dnevni limit (npr. 2000 za 2000 dinara dnevno)
+3. Tapnite dugme za potvrdu
+4. Limit će se primeniti na sve buduce datume
+
+Kada vaši dnevni troškovi pređu ovaj limit, aplikacija će to vizuelno označiti crvenom bojom na progress bar-u.
+
+
+3.7. Upravljanje kategorijama
+
+Aplikacija dolazi sa podrazumevanim kategorijama, ali možete kreirati svoje:
+
+Dodavanje nove kategorije:
+1. Otvorite "Categories Setup" iz menija
+2. Tapnite dugme "+" ili "Add Category"
+3. Unesite:
+- Naziv kategorije (npr. "Kafić")
+- Opis kategorije
+- Odaberite boju (pomoću HueBar-a)
+4. Tapnite "CREATE"
+
+Izmena kategorije:
+1. Tapnite na kategoriju iz liste
+2. Izmenite naziv, opis ili boju
+3. Tapnite "SAVE"
+
+Brisanje kategorije:
+1. Swipe levo/desno na kategoriji
+2. Potvrdite brisanje
+
+Napomena: Možete brisati samo custom kategorije koje ste sami kreirali. Podrazumevane kategorije se ne mogu obrisati.
+
+Omiljene kategorije:
+• Tapnite na ikonu zvezde da označite kategoriju kao omiljenu
+• Omiljene kategorije se prikazuju na vrhu liste za brži pristup
+
+
+4. ZAKLJUČAK
+
+Simple Expense Tracker je moderna Android aplikacija koja kombinuje jednostavnost korišćenja sa naprednim tehničkim rešenjima. Korišćenjem najnovijih Android tehnologija kao što su Kotlin, Jetpack Compose i Material 3 Design, aplikacija pruža glatko korisničko iskustvo i stabilne performanse.
+
+Ključne prednosti aplikacije:
+• Potpuno offline rad za osnovne funkcije - nema potrebe za internet konekcijom
+• Lokalno skladištenje podataka - privatnost i bezbednost
+• Intuitivno korisničko interfejs - lako za upotrebu
+• Fleksibilne kategorije - prilagodljivo potrebama korisnika
+• Detaljni izveštaji - uvid u obrazce potrošnje
+• Budžetsko praćenje - pomoć u finansijskoj disciplini
+• Integracija sa spoljnim API-jem - prikaz Bitcoin cene u realnom vremenu
+
+Sa čistom arhitekturom, odvojenim slojevima i dobrom organizacijom koda, aplikacija je laka za održavanje i proširivanje. GitHub Actions workflow obezbeđuje automatizaciju build procesa i omogućava kontinuiranu integraciju novih funkcionalnosti.
+
+Aplikacija predstavlja solidnu osnovu za praćenje ličnih finansija i može se dalje razvijati dodavanjem novih funkcionalnosti kao što su izvoz podataka, backup/restore, widget podrška, grafički prikazi troškova, i još mnogo toga.
+
+
+---
+Verzija aplikacije: 1.0.6
+Datum kreiranja dokumenta: 2. Oktobar 2025
+
